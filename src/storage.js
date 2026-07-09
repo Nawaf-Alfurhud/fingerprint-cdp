@@ -15,6 +15,16 @@ const { v4: uuidv4 } = require('uuid')
 
 // Path to our fake database file
 const DB_PATH = path.join(__dirname, '../data/profiles.json')
+const fs   = require('fs')
+const path = require('path')
+const { v4: uuidv4 } = require('uuid')
+
+const DB_PATH = path.join(__dirname, '../data/profiles.json')
+
+// Make sure the data folder exists
+if (!fs.existsSync(path.join(__dirname, '../data'))) {
+  fs.mkdirSync(path.join(__dirname, '../data'))
+}
 
 // -- HELPER: Read the database file --
 // Returns the full profiles object, or empty object if file does not exist yet
