@@ -14,7 +14,6 @@ const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 
 // Path to our fake database file
-const DB_PATH = path.join(__dirname, '../data/profiles.json')
 const fs   = require('fs')
 const path = require('path')
 const { v4: uuidv4 } = require('uuid')
