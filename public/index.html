@@ -572,7 +572,7 @@
     // Send to server
     let result
     try {
-      const res = await fetch('http://localhost:3000/api/identify', {
+      const response = await fetch('/api/identify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signals)
