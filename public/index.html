@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fingerprint CDP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #08090c;
+      --surface:   #0f1117;
+      --surface2:  #161820;
+      --border:    #1e2130;
+      --accent:    #6366f1;
+      --accent-dim:#6366f120;
+      --accent-2:  #a78bfa;
+      --green:     #10b981;
+      --green-dim: #10b98118;
+      --text-1:    #f1f5f9;
+      --text-2:    #64748b;
+      --text-3:    #334155;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ---- HEADER ---- */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-1);
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .header-right {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-2);
+      letter-spacing: 0.06em;
+    }
+
+    /* ---- MAIN LAYOUT ---- */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 40px;
+    }
+
+    /* ---- HERO SECTION ---- */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+
+    .card-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--text-2);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ---- FINGERPRINT ID CARD ---- */
+    .fp-card {
+      grid-column: 1 / -1;
+      position: relative;
+      overflow: hidden;
+      border-color: var(--accent-dim);
+      background: linear-gradient(135deg, var(--surface) 0%, #0d0f1a 100%);
+    }
+
+    .fp-card::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, #6366f115 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .fp-id-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .fp-id {
+      font-family: var(--mono);
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--text-1);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .fp-id.visible { opacity: 1; }
+
+    .fp-id span {
+      color: var(--accent-2);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    .status-pill .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-new {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid #10b98130;
+    }
+
+    .status-new .dot { background: var(--green); }
+
+    .status-returning {
+      background: var(--accent-dim);
+      color: var(--accent-2);
+      border: 1px solid #6366f130;
+    }
+
+    .status-returning .dot {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .fp-meta {
+      display: flex;
+      gap: 32px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .fp-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fp-meta-item .meta-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .fp-meta-item .meta-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-1);
+    }
+
+    /* ---- SIGNALS GRID ---- */
+    .section-header {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--text-2);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .signals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .signal-list { display: flex; flex-direction: column; gap: 1px; }
+
+    .signal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .signal-row:last-child { border-bottom: none; }
+
+    .sig-name {
+      font-size: 12px;
+      color: var(--text-2);
+      min-width: 140px;
+      flex-shrink: 0;
+    }
+
+    .sig-val {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-1);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .sig-missing {
+      font-size: 11px;
+      color: var(--text-3);
+      font-style: italic;
+      text-align: right;
+    }
+
+    /* Signal stability badges */
+    .sig-badge {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .badge-high {
+      background: #10b98112;
+      color: #10b981;
+      border: 1px solid #10b98120;
+    }
+
+    .badge-med {
+      background: #f59e0b12;
+      color: #f59e0b;
+      border: 1px solid #f59e0b20;
+    }
+
+    .badge-low {
+      background: #ef444412;
+      color: #ef4444;
+      border: 1px solid #ef444420;
+    }
+
+    /* ---- CDP PROFILE ---- */
+    .profile-card { margin-bottom: 24px; }
+
+    .json-wrap {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: #94a3b8;
+      max-height: 340px;
+      overflow-y: auto;
+      white-space: pre;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .json-wrap .json-key   { color: #a78bfa; }
+    .json-wrap .json-str   { color: #34d399; }
+    .json-wrap .json-num   { color: #f9a8d4; }
+    .json-wrap .json-bool  { color: #fb923c; }
+
+    /* ---- LOADING STATE ---- */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      height: 14px;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ---- SCROLLBAR ---- */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      Fingerprint CDP
+    </div>
+    <div class="header-right" id="header-platform">Initialising...</div>
+  </header>
+
+  <main>
+
+    <!-- FINGERPRINT ID HERO -->
+    <div class="hero">
+      <div class="card fp-card">
+        <div class="card-label">Device Fingerprint</div>
+        <div class="fp-id-wrap">
+          <div class="fp-id" id="fp-id-display">--------</div>
+          <div id="status-pill"></div>
+        </div>
+        <div class="fp-meta">
+          <div class="fp-meta-item">
+            <span class="meta-label">Profile ID</span>
+            <span class="meta-value" id="profile-id">--</span>
+          </div>
+          <div class="fp-meta-item">
+            <span class="meta-label">First Seen</span>
+            <span class="meta-value" id="first-seen">--</span>
+          </div>
+          <div class="fp-meta-item">
+            <span class="meta-label">Last Seen</span>
+            <span class="meta-value" id="last-seen">--</span>
+          </div>
+          <div class="fp-meta-item">
+            <span class="meta-label">Visit Count</span>
+            <span class="meta-value" id="visit-count">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNALS -->
+    <div class="signals-grid">
+
+      <!-- Hardware Signals -->
+      <div class="card">
+        <div class="section-header">Hardware Signals</div>
+        <div class="signal-list" id="hardware-signals">
+          <div class="skeleton" style="margin:8px 0"></div>
+          <div class="skeleton" style="margin:8px 0; width:80%"></div>
+          <div class="skeleton" style="margin:8px 0; width:90%"></div>
+        </div>
+      </div>
+
+      <!-- Environment Signals -->
+      <div class="card">
+        <div class="section-header">Environment Signals</div>
+        <div class="signal-list" id="environment-signals">
+          <div class="skeleton" style="margin:8px 0"></div>
+          <div class="skeleton" style="margin:8px 0; width:75%"></div>
+          <div class="skeleton" style="margin:8px 0; width:85%"></div>
+        </div>
+      </div>
+
+      <!-- Rendering Signals -->
+      <div class="card">
+        <div class="section-header">Rendering Signals</div>
+        <div class="signal-list" id="rendering-signals">
+          <div class="skeleton" style="margin:8px 0"></div>
+          <div class="skeleton" style="margin:8px 0; width:70%"></div>
+        </div>
+      </div>
+
+      <!-- Browser Signals -->
+      <div class="card">
+        <div class="section-header">Browser Signals</div>
+        <div class="signal-list" id="browser-signals">
+          <div class="skeleton" style="margin:8px 0"></div>
+          <div class="skeleton" style="margin:8px 0; width:80%"></div>
+          <div class="skeleton" style="margin:8px 0; width:60%"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CDP PROFILE -->
+    <div class="card profile-card">
+      <div class="section-header">CDP Profile Document</div>
+      <div class="json-wrap" id="profile-json">Loading...</div>
+    </div>
+
+  </main>
+
+
+<script>
+  // ── Signal collection functions ──────────────────────────────────────────
+
+  function getCanvasHash() {
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = 200; canvas.height = 50
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#f60'; ctx.fillRect(125, 1, 62, 20)
+      ctx.fillStyle = '#069'; ctx.font = '11pt Arial'
+      ctx.fillText('cdp_fingerprint_test', 2, 15)
+      ctx.fillStyle = 'rgba(102,204,0,0.7)'; ctx.font = '18pt Arial'
+      ctx.fillText('fingerprint', 4, 45)
+      return simpleHash(canvas.toDataURL())
+    } catch (e) { return null }
+  }
+
+  function getWebGLInfo() {
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      if (!gl) return { renderer: null, hash: null }
+      const ext = gl.getExtension('WEBGL_debug_renderer_info')
+      const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null
+      gl.clearColor(0.5, 0.5, 0.5, 1.0); gl.clear(gl.COLOR_BUFFER_BIT)
+      const pixels = new Uint8Array(4)
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+      return { renderer, hash: simpleHash(pixels.toString() + renderer) }
+    } catch (e) { return { renderer: null, hash: null } }
+  }
+
+  function getAudioHash() {
+    return new Promise(resolve => {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext
+        if (!AC) return resolve(null)
+        const ctx = new OfflineAudioContext(1, 44100, 44100)
+        const osc = ctx.createOscillator()
+        const analyser = ctx.createAnalyser()
+        const gain = ctx.createGain()
+        osc.type = 'triangle'; osc.frequency.value = 10000; gain.gain.value = 0
+        osc.connect(analyser); analyser.connect(gain); gain.connect(ctx.destination)
+        osc.start(0)
+        ctx.startRendering()
+          .then(buffer => resolve(simpleHash(buffer.getChannelData(0).slice(4500, 5000).toString())))
+          .catch(() => resolve(null))
+      } catch (e) { resolve(null) }
+    })
+  }
+
+  function detectFonts() {
+    const fonts = ['Arial','Helvetica','Times New Roman','Courier New','Georgia',
+                   'Verdana','Impact','Tahoma','Geneva','Monaco','Palatino Linotype']
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.font = '72px monospace'
+    const base = ctx.measureText('mmmmmmmmmmlli').width
+    return fonts.filter(f => {
+      ctx.font = '72px ' + f + ', monospace'
+      return ctx.measureText('mmmmmmmmmmlli').width !== base
+    }).length
+  }
+
+  function simpleHash(str) {
+    let h = 0
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(31, h) + str.charCodeAt(i) | 0
+    }
+    return Math.abs(h).toString(16).padStart(8, '0')
+  }
+
+  // ── Display helpers ──────────────────────────────────────────────────────
+
+  function row(name, value, stability) {
+    const badges = {
+      high: '<span class="sig-badge badge-high">Stable</span>',
+      med:  '<span class="sig-badge badge-med">Moderate</span>',
+      low:  '<span class="sig-badge badge-low">Volatile</span>',
+    }
+    if (value === null || value === undefined) {
+      return `<div class="signal-row">
+        <span class="sig-name">${name}</span>
+        <span class="sig-missing">not available</span>
+      </div>`
+    }
+    return `<div class="signal-row">
+      <span class="sig-name">${name}</span>
+      ${stability ? badges[stability] : ''}
+      <span class="sig-val">${value}</span>
+    </div>`
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '--'
+    return new Date(iso).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+  }
+
+  function syntaxHighlight(json) {
+    return JSON.stringify(json, null, 2)
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")\s*:/g,
+        '<span class="json-key">$1</span>:')
+      .replace(/:\s*("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")/g,
+        ': <span class="json-str">$1</span>')
+      .replace(/:\s*(\d+\.?\d*)/g,
+        ': <span class="json-num">$1</span>')
+      .replace(/:\s*(true|false)/g,
+        ': <span class="json-bool">$1</span>')
+  }
+
+  // ── Main ─────────────────────────────────────────────────────────────────
+
+  async function main() {
+    const webgl  = getWebGLInfo()
+    const canvas = getCanvasHash()
+    const audio  = await getAudioHash()
+    const fonts  = detectFonts()
+
+    const signals = {
+      user_agent:           navigator.userAgent,
+      language:             navigator.language,
+      platform:             navigator.platform,
+      cookie_enabled:       navigator.cookieEnabled,
+      do_not_track:         navigator.doNotTrack,
+      timezone:             Intl.DateTimeFormat().resolvedOptions().timeZone,
+      screen_width:         screen.width,
+      screen_height:        screen.height,
+      color_depth:          screen.colorDepth,
+      pixel_ratio:          window.devicePixelRatio,
+      hardware_concurrency: navigator.hardwareConcurrency,
+      device_memory:        navigator.deviceMemory,
+      canvas_hash:          canvas,
+      webgl_renderer:       webgl.renderer,
+      webgl_hash:           webgl.hash,
+      audio_hash:           audio,
+      fonts_detected:       fonts
+    }
+
+    // Send to server
+    let result
+    try {
+      const res = await fetch('http://localhost:3000/api/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signals)
+      })
+      result = await res.json()
+    } catch (e) {
+      document.getElementById('fp-id-display').textContent = 'Server offline'
+      return
+    }
+
+    // ── Render fingerprint ID ──
+    const fpEl = document.getElementById('fp-id-display')
+    const id   = result.fingerprint_id
+    fpEl.innerHTML = `<span>${id.substring(0,8)}</span>${id.substring(8)}`
+    fpEl.classList.add('visible')
+
+    // ── Status pill ──
+    const pill = document.getElementById('status-pill')
+    if (result.status === 'returning_visitor') {
+      pill.innerHTML = `<div class="status-pill status-returning">
+        <div class="dot"></div> Returning Device
+      </div>`
+    } else {
+      pill.innerHTML = `<div class="status-pill status-new">
+        <div class="dot"></div> New Device
+      </div>`
+    }
+
+    // ── Meta row ──
+    document.getElementById('profile-id').textContent   = result.profile._id
+    document.getElementById('first-seen').textContent   = formatDate(result.profile.created_at)
+    document.getElementById('last-seen').textContent    = formatDate(result.profile.last_seen)
+    document.getElementById('visit-count').textContent  = result.profile.visit_count
+
+    // ── Header platform ──
+    document.getElementById('header-platform').textContent =
+      signals.platform + '  ·  ' + signals.timezone
+
+    // ── Hardware signals ──
+    document.getElementById('hardware-signals').innerHTML = [
+      row('Screen Resolution', signals.screen_width + ' × ' + signals.screen_height, 'high'),
+      row('Pixel Ratio',       signals.pixel_ratio + 'x', 'high'),
+      row('Color Depth',       signals.color_depth + ' bit', 'high'),
+      row('CPU Cores',         signals.hardware_concurrency, 'high'),
+      row('Device Memory',     signals.device_memory ? signals.device_memory + ' GB' : null, 'high'),
+      row('Platform',          signals.platform, 'high'),
+    ].join('')
+
+    // ── Environment signals ──
+    document.getElementById('environment-signals').innerHTML = [
+      row('Timezone',          signals.timezone, 'high'),
+      row('Language',          signals.language, 'high'),
+      row('Fonts Detected',    signals.fonts_detected, 'med'),
+      row('Cookies',           signals.cookie_enabled ? 'Enabled' : 'Disabled', 'high'),
+      row('Do Not Track',      signals.do_not_track || 'Not set', 'med'),
+    ].join('')
+
+    // ── Rendering signals ──
+    document.getElementById('rendering-signals').innerHTML = [
+      row('GPU Renderer',  signals.webgl_renderer, 'high'),
+      row('WebGL Hash',    signals.webgl_hash, 'med'),
+      row('Canvas Hash',   signals.canvas_hash, 'low'),
+      row('Audio Hash',    signals.audio_hash, 'med'),
+    ].join('')
+
+    // ── Browser signals ──
+    const ua = signals.user_agent
+    const browser = ua.includes('Chrome') ? 'Chrome' :
+                    ua.includes('Firefox') ? 'Firefox' :
+                    ua.includes('Safari') ? 'Safari' : 'Other'
+
+    document.getElementById('browser-signals').innerHTML = [
+      row('Browser',     browser, 'med'),
+      row('User Agent',  signals.user_agent ? signals.user_agent.substring(0, 40) + '…' : null, 'low'),
+    ].join('')
+
+    // ── CDP Profile JSON ──
+    document.getElementById('profile-json').innerHTML = syntaxHighlight(result.profile)
+  }
+
+  window.addEventListener('load', main)
+</script>
+</body>
+</html>
