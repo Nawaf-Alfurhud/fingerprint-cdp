@@ -577,7 +577,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signals)
       })
-      result = await res.json()
+      result = await response.json()
     } catch (e) {
       document.getElementById('fp-id-display').textContent = 'Server offline'
       return
