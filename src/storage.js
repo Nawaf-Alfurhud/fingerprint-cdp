@@ -1,34 +1,31 @@
-const fs   = require('fs')
-const path = require('path')
-const { v4: uuidv4 } = require('uuid')
+const { MongoClient } = require('mongodb')
+const { v4: uuidv4 }  = require('uuid')
 
-const DB_PATH  = path.join(__dirname, '../data/profiles.json')
-const DATA_DIR = path.join(__dirname, '../data')
+// MongoDB connection string
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://fingerprintadmin:N1bTj33diZ5Zq0tq@fingerprint-cdp.ewy8hyl.mongodb.net/?appName=fingerprint-cdp'
+const DB_NAME   = 'fingerprint_cdp'
+const COL_NAME  = 'profiles'
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
+// Keep one connection open and reuse it
+let client     = null
+let collection = null
+
+async function getCollection() {
+  if (collection) return collection
+  client     = new MongoClient(MONGO_URI)
+  await client.connect()
+  collection = client.db(DB_NAME).collection(COL_NAME)
+  console.log('Connected to MongoDB Atlas')
+  return collection
 }
 
-function readDatabase() {
-  try {
-    const raw = fs.readFileSync(DB_PATH, 'utf8')
-    return JSON.parse(raw)
-  } catch (err) {
-    return { profiles: [] }
-  }
+async function findProfileByFingerprintId(fingerprintId) {
+  const col = await getCollection()
+  return await col.findOne({ fingerprint_id: fingerprintId }) || null
 }
 
-function writeDatabase(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf8')
-}
-
-function findProfileByFingerprintId(fingerprintId) {
-  const db = readDatabase()
-  return db.profiles.find(p => p.fingerprint_id === fingerprintId) || null
-}
-
-function createProfile(fingerprintId, signals) {
-  const db = readDatabase()
+async function createProfile(fingerprintId, signals) {
+  const col = await getCollection()
   const newProfile = {
     _id:            'CDP-ANON-' + uuidv4().substring(0, 8).toUpperCase(),
     fingerprint_id: fingerprintId,
@@ -51,37 +48,42 @@ function createProfile(fingerprintId, signals) {
     signals:        signals,
     signal_history: []
   }
-  db.profiles.push(newProfile)
-  writeDatabase(db)
+  await col.insertOne(newProfile)
   return newProfile
 }
 
-function updateProfile(fingerprintId, signals) {
-  const db    = readDatabase()
-  const index = db.profiles.findIndex(p => p.fingerprint_id === fingerprintId)
-  if (index === -1) return null
+async function updateProfile(fingerprintId, signals) {
+  const col = await getCollection()
+  const profile = await col.findOne({ fingerprint_id: fingerprintId })
+  if (!profile) return null
 
-  db.profiles[index].signal_history.push({
-    recorded_at: db.profiles[index].last_seen,
-    signals:     db.profiles[index].signals
-  })
-
-  db.profiles[index].last_seen      = new Date().toISOString()
-  db.profiles[index].visit_count    = db.profiles[index].visit_count + 1
-  db.profiles[index].signals        = signals
-  db.profiles[index].traits.browser  = extractBrowser(signals.user_agent)
-  db.profiles[index].traits.os       = signals.platform       || 'unknown'
-  db.profiles[index].traits.timezone = signals.timezone       || 'unknown'
-  db.profiles[index].traits.language = signals.language       || 'unknown'
-  db.profiles[index].traits.gpu      = signals.webgl_renderer || 'unknown'
-
-  writeDatabase(db)
-  return db.profiles[index]
+  await col.updateOne(
+    { fingerprint_id: fingerprintId },
+    {
+      $set: {
+        last_seen:            new Date().toISOString(),
+        signals:              signals,
+        'traits.browser':     extractBrowser(signals.user_agent),
+        'traits.os':          signals.platform       || 'unknown',
+        'traits.timezone':    signals.timezone       || 'unknown',
+        'traits.language':    signals.language       || 'unknown',
+        'traits.gpu':         signals.webgl_renderer || 'unknown',
+      },
+      $inc: { visit_count: 1 },
+      $push: {
+        signal_history: {
+          recorded_at: profile.last_seen,
+          signals:     profile.signals
+        }
+      }
+    }
+  )
+  return await col.findOne({ fingerprint_id: fingerprintId })
 }
 
-function getAllProfiles() {
-  const db = readDatabase()
-  return db.profiles
+async function getAllProfiles() {
+  const col = await getCollection()
+  return await col.find({}).toArray()
 }
 
 function extractBrowser(userAgent) {
